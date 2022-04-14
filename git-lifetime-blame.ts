@@ -1,80 +1,80 @@
 #!/usr/bin/env ts-node-dev
 
 import { execSync } from "child_process"
-import path from "path"
 import assert from "assert"
 
 export type Opts = {
-	filepath: string
+	repoPath: string
 }
 export async function gitLifetimeBlame({
-	filepath
+	repoPath
 }: Opts) {
 	// prints to stdout
-	const execPrint = (c: string) => execSync(c, { cwd: path.dirname(filepath), stdio: "inherit" });
+	const execPrint = (c: string) => execSync(c, { cwd: repoPath, stdio: "inherit" });
 	noop(execPrint)
 
 	// returns stdout
-	const execRead = (c: string): string => execSync(c, { cwd: path.dirname(filepath), stdio: "pipe" }).toString();
+	const execRead = (c: string): string => execSync(c, { cwd: repoPath, stdio: "pipe" }).toString();
 
-	// TODO
-	//const findFilesCmd = `git diff --stat=1000 master | head -n -1 | cut -d"|" -f1`
-	//noop(findFilesCmd)
+	const findFilesCmd = `git diff --stat=1000 master | head -n -1 | cut -d"|" -f1`
+	const filepaths: string[] = execRead(findFilesCmd).split("\n").map(f => f.trim())
 
-	const fileLifetimeCmd = `git log --stat=1000 --follow --pretty=format:"%H%n%aN%n%aE" ${filepath}`
-	const fileLifetime: string = execRead(fileLifetimeCmd)
+	for (const filepath of filepaths) {
+		const fileLifetimeCmd = `git log --stat=1000 --follow --pretty=format:"%H%n%aN%n%aE" ${filepath}`
+		const fileLifetime: string = execRead(fileLifetimeCmd)
 
-	const entriesByCommit: string[][] = fileLifetime.split("\n\n").map(e => e.split("\n"))
-	entriesByCommit[entriesByCommit.length - 1].pop() // remove empty
-	console.log({entriesByCommit})
+		const entriesByCommit: string[][] = fileLifetime.split("\n\n").map(e => e.split("\n"))
+		entriesByCommit[entriesByCommit.length - 1].pop() // remove empty
+		console.log({entriesByCommit})
 
-	const lengths = entriesByCommit.map(e => e.length)
-	console.log({lengths})
-	for (const len of lengths) {
-		assert.equal(lengths[0], len)
-	};
+		const lengths = entriesByCommit.map(e => e.length)
+		console.log({lengths})
+		for (const len of lengths) {
+			assert.equal(lengths[0], len)
+		};
 
-	const entries: Entry[] = entriesByCommit.map(parseEntryFromStrings(filepath))
-	console.log({entries})
+		const entries: Entry[] = entriesByCommit.map(parseEntryFromStrings(filepath))
+		console.log({entries})
 
-	/**
-	 * maybe "CumulativeEntry" or "CumulativeModifications"
-	 */
-	type Modifications = {
-		adds: Entry["insertions"]
-		dels: Entry["deletions"]
-		both: Entry["totalChanges"]
-	};
-	const totalChangesByAuthor: Map<Entry["authorEmail"], Modifications> = new Map()
-	for (const e of entries) {
-		if (!totalChangesByAuthor.has(e.authorEmail)) {
+		/**
+		 * maybe "CumulativeEntry" or "CumulativeModifications"
+		 */
+		type Modifications = {
+			adds: Entry["insertions"]
+			dels: Entry["deletions"]
+			both: Entry["totalChanges"]
+		};
+		const totalChangesByAuthor: Map<Entry["authorEmail"], Modifications> = new Map()
+		for (const e of entries) {
+			if (!totalChangesByAuthor.has(e.authorEmail)) {
+				totalChangesByAuthor.set(e.authorEmail, {
+					adds: 0,
+					dels: 0,
+					both: 0,
+				})
+			}
+
+			const tmp: Modifications = totalChangesByAuthor.get(e.authorEmail)!
 			totalChangesByAuthor.set(e.authorEmail, {
-				adds: 0,
-				dels: 0,
-				both: 0,
+				adds: tmp.adds + e.insertions,
+				dels: tmp.dels + e.deletions,
+				both: tmp.both + e.totalChanges,
 			})
-		}
+		};
 
-		const tmp: Modifications = totalChangesByAuthor.get(e.authorEmail)!
-		totalChangesByAuthor.set(e.authorEmail, {
-			adds: tmp.adds + e.insertions,
-			dels: tmp.dels + e.deletions,
-			both: tmp.both + e.totalChanges,
+		const totalChangesByAuthorParsed = [...totalChangesByAuthor.entries()].sort((A, B)  => B[1].both - A[1].both)
+		console.log({
+			filepath,
+			totalChangesByAuthorParsed: totalChangesByAuthorParsed.map((c) =>
+				[
+					c[0],
+					"+" + c[1].adds,
+					"-" + c[1].dels,
+					"±" + c[1].both,
+				]
+			),
 		})
-	};
-
-	const totalChangesByAuthorParsed = [...totalChangesByAuthor.entries()].sort((A, B)  => B[1].both - A[1].both)
-	console.log({
-		filepath,
-		totalChangesByAuthorParsed: totalChangesByAuthorParsed.map((c) =>
-			[
-				c[0],
-				"+" + c[1].adds,
-				"-" + c[1].dels,
-				"±" + c[1].both,
-			]
-		),
-	})
+	}
 }
 
 function noop(..._xs: any[]): void {
@@ -149,10 +149,10 @@ export function parseEntryFromStrings<T extends string = string>(filepath: T) {
  */
 if (!module.parent) {
 	process.argv.splice(0, 2)
-	const filepath = process.argv[0]
+	const repoPath = process.argv[0]
 
 	gitLifetimeBlame({
-		filepath,
+		repoPath,
 	})
 }
 

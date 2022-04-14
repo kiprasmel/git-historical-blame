@@ -5,6 +5,8 @@ import assert from "assert"
 import fs from "fs"
 import path from "path"
 
+import c from "chalk"
+
 export type Opts = {
 	repoPath: string
 	/**
@@ -191,9 +193,9 @@ function formatProgress(i: number, n: number, s: string): string {
 	const fmt =
 		"["
 		+ leftpad
-		+ i.toString()
+		+ c.yellow(i.toString())
 		+ "/"
-		+ n.toString()
+		+ c.yellow(n.toString())
 		+ "]"
 		+ " "
 		+ s

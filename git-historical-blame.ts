@@ -37,12 +37,14 @@ export async function gitHistoricalBlame({
 		.map(f => f.trim())
 		.slice(0, -1) // remove empty
 
+	const output = []
+
 	for (const filepath of filepaths) {
 		const absFilepath: string = path.join(repoPath, filepath)
 		if (!fs.existsSync(absFilepath)) {
 			// got deleted
 
-			console.log({
+			output.push({
 				filepath,
 				info: "deleted"
 			})
@@ -91,7 +93,7 @@ export async function gitHistoricalBlame({
 		};
 
 		const totalChangesByAuthorParsed = [...totalChangesByAuthor.entries()].sort((A, B)  => B[1].both - A[1].both)
-		console.log({
+		output.push({
 			filepath,
 			totalChangesByAuthorParsed: totalChangesByAuthorParsed.map((c) =>
 				[
@@ -103,6 +105,14 @@ export async function gitHistoricalBlame({
 			),
 		})
 	}
+
+	const outfile = "historical-blame.json" as const
+	fs.writeFileSync(outfile, JSON.stringify(output, null, 2), { encoding: "utf-8" })
+
+	console.log({
+		outfile,
+		LOC: output.length,
+	});
 }
 
 function noop(..._xs: any[]): void {

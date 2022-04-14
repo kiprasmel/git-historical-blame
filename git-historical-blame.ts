@@ -11,12 +11,19 @@ export type Opts = {
 	 * defaults to "master"
 	 */
 	sinceCommittish?: string
+
+	/**
+	 * defaults to `false`
+	 */
+	includeCommitsAfterCommittish: boolean
 }
 const defaultSinceCommittish = "master" as const
+const defaultIncludeCommitsAfterCommittish = false as const
 
 export async function gitHistoricalBlame({
 	repoPath,
 	sinceCommittish = defaultSinceCommittish,
+	includeCommitsAfterCommittish = defaultIncludeCommitsAfterCommittish,
 }: Opts) {
 	// prints to stdout
 	const execPrint = (c: string) => execSync(c, { cwd: repoPath, stdio: "inherit" });
@@ -43,7 +50,8 @@ export async function gitHistoricalBlame({
 			continue
 		}
 
-		const fileHistoricalCmd = `git log --stat=1000 --follow --pretty=format:"%H%n%aN%n%aE" ${filepath}`
+		const extra1 = includeCommitsAfterCommittish ? "" : sinceCommittish
+		const fileHistoricalCmd = `git log ${extra1} --stat=1000 --follow --pretty=format:"%H%n%aN%n%aE" ${filepath}`
 		const fileHistorical: string = execRead(fileHistoricalCmd)
 
 		const entriesByCommit: string[][] = fileHistorical.split("\n\n").map(e => e.split("\n"))
@@ -169,10 +177,12 @@ if (!module.parent) {
 	process.argv.splice(0, 2)
 	const repoPath = process.argv[0]
 	const sinceCommittish = process.argv[1] || defaultSinceCommittish
+	const includeCommitsAfterCommittish = !!process.argv[2] ?? defaultIncludeCommitsAfterCommittish
 
 	gitHistoricalBlame({
 		repoPath,
 		sinceCommittish,
+		includeCommitsAfterCommittish,
 	})
 }
 

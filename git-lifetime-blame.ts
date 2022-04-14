@@ -3,11 +3,19 @@
 import { execSync } from "child_process"
 import assert from "assert"
 
+
 export type Opts = {
 	repoPath: string
+	/**
+	 * defaults to "master"
+	 */
+	sinceCommittish?: string
 }
+const defaultSinceCommittish = "master" as const
+
 export async function gitLifetimeBlame({
-	repoPath
+	repoPath,
+	sinceCommittish = defaultSinceCommittish,
 }: Opts) {
 	// prints to stdout
 	const execPrint = (c: string) => execSync(c, { cwd: repoPath, stdio: "inherit" });
@@ -16,7 +24,7 @@ export async function gitLifetimeBlame({
 	// returns stdout
 	const execRead = (c: string): string => execSync(c, { cwd: repoPath, stdio: "pipe" }).toString();
 
-	const findFilesCmd = `git diff --stat=1000 master | head -n -1 | cut -d"|" -f1`
+	const findFilesCmd = `git diff --stat=1000 ${sinceCommittish} | head -n -1 | cut -d"|" -f1`
 	const filepaths: string[] = execRead(findFilesCmd).split("\n").map(f => f.trim())
 
 	for (const filepath of filepaths) {
@@ -150,9 +158,11 @@ export function parseEntryFromStrings<T extends string = string>(filepath: T) {
 if (!module.parent) {
 	process.argv.splice(0, 2)
 	const repoPath = process.argv[0]
+	const sinceCommittish = process.argv[1] || defaultSinceCommittish
 
 	gitLifetimeBlame({
 		repoPath,
+		sinceCommittish,
 	})
 }
 

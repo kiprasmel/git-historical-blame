@@ -2,7 +2,8 @@
 
 import { execSync } from "child_process"
 import assert from "assert"
-
+import fs from "fs"
+import path from "path"
 
 export type Opts = {
 	repoPath: string
@@ -28,6 +29,18 @@ export async function gitLifetimeBlame({
 	const filepaths: string[] = execRead(findFilesCmd).split("\n").map(f => f.trim())
 
 	for (const filepath of filepaths) {
+		const absFilepath: string = path.join(repoPath, filepath)
+		if (!fs.existsSync(absFilepath)) {
+			// got deleted
+
+			console.log({
+				filepath,
+				info: "deleted"
+			})
+
+			continue
+		}
+
 		const fileLifetimeCmd = `git log --stat=1000 --follow --pretty=format:"%H%n%aN%n%aE" ${filepath}`
 		const fileLifetime: string = execRead(fileLifetimeCmd)
 

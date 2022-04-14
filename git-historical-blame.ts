@@ -38,8 +38,11 @@ export async function gitHistoricalBlame({
 		.slice(0, -1) // remove empty
 
 	const output = []
+	let progress = 0
 
 	for (const filepath of filepaths) {
+		console.log(formatProgress(++progress, filepaths.length, filepath))
+
 		const absFilepath: string = path.join(repoPath, filepath)
 		if (!fs.existsSync(absFilepath)) {
 			// got deleted
@@ -178,6 +181,24 @@ export function parseEntryFromStrings<T extends string = string>(filepath: T) {
 			totalChanges: insertions + deletions
 		}
 	};
+};
+
+function formatProgress(i: number, n: number, s: string): string {
+	const maxlen = n.toString().length
+	const len = i.toString().length
+	const leftpad = " ".repeat(maxlen - len)
+
+	const fmt =
+		"["
+		+ leftpad
+		+ i.toString()
+		+ "/"
+		+ n.toString()
+		+ "]"
+		+ " "
+		+ s
+
+	return fmt
 };
 
 /**

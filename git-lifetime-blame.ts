@@ -46,16 +46,13 @@ export async function gitLifetimeBlame({
 
 		const entriesByCommit: string[][] = fileLifetime.split("\n\n").map(e => e.split("\n"))
 		entriesByCommit[entriesByCommit.length - 1].pop() // remove empty
-		console.log({entriesByCommit})
 
 		const lengths = entriesByCommit.map(e => e.length)
-		console.log({lengths})
 		for (const len of lengths) {
 			assert.equal(lengths[0], len)
 		};
 
 		const entries: Entry[] = entriesByCommit.map(parseEntryFromStrings(filepath))
-		console.log({entries})
 
 		/**
 		 * maybe "CumulativeEntry" or "CumulativeModifications"
@@ -128,11 +125,9 @@ export type Entry<T extends string = string> = {
 // depends on the `fileLifetimeCmd` format
 export function parseEntryFromStrings<T extends string = string>(filepath: T) {
 	return (e: string[]): Entry<T> => {
-		console.log({e})
 		assert.equal(e.length, 5)
 
 		const insDel = e[4].split(",").splice(1)
-		console.log({insDel})
 
 		let insertions = -1, deletions = -1
 		if (insDel.length === 2) {

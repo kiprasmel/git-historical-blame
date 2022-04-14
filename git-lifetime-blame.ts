@@ -26,7 +26,9 @@ export async function gitLifetimeBlame({
 	const execRead = (c: string): string => execSync(c, { cwd: repoPath, stdio: "pipe" }).toString();
 
 	const findFilesCmd = `git diff --stat=1000 ${sinceCommittish} | head -n -1 | cut -d"|" -f1`
-	const filepaths: string[] = execRead(findFilesCmd).split("\n").map(f => f.trim())
+	const filepaths: string[] = execRead(findFilesCmd).split("\n")
+		.map(f => f.trim())
+		.slice(0, -1) // remove empty
 
 	for (const filepath of filepaths) {
 		const absFilepath: string = path.join(repoPath, filepath)

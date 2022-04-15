@@ -108,6 +108,9 @@ export async function gitHistoricalBlame({
 		};
 
 		const totalChangesByAuthorParsed = [...totalChangesByAuthor.entries()].sort((A, B)  => B[1].both - A[1].both)
+
+		const sumOfTotalChanges = totalChangesByAuthorParsed.reduce((acc, [_, { both }]) => acc + both, 0)
+
 		outfileStream.write(JSON.stringify({
 			filepath,
 			totalChangesByAuthorParsed: align2D(
@@ -117,6 +120,7 @@ export async function gitHistoricalBlame({
 						"+" + c[1].adds,
 						"-" + c[1].dels,
 						"±" + c[1].both,
+						"%" + (c[1].both / sumOfTotalChanges).toFixed(2),
 					])
 				),
 				"  ",

@@ -106,7 +106,7 @@ export async function gitLifetimeBlame({
 					"+" + c[1].adds,
 					"-" + c[1].dels,
 					"±" + c[1].both,
-				]
+				].join("  ")
 			),
 		})
 	}

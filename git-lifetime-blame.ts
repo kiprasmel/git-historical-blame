@@ -100,14 +100,17 @@ export async function gitLifetimeBlame({
 		const totalChangesByAuthorParsed = [...totalChangesByAuthor.entries()].sort((A, B)  => B[1].both - A[1].both)
 		output.push({
 			filepath,
-			totalChangesByAuthorParsed: totalChangesByAuthorParsed.map((c) =>
-				[
-					c[0],
-					"+" + c[1].adds,
-					"-" + c[1].dels,
-					"±" + c[1].both,
-				].join("  ")
-			),
+			totalChangesByAuthorParsed: align2D(
+				totalChangesByAuthorParsed.map((c) =>
+					([
+						c[0],
+						"+" + c[1].adds,
+						"-" + c[1].dels,
+						"±" + c[1].both,
+					])
+				),
+				"  ",
+			)
 		})
 	}
 
@@ -201,6 +204,28 @@ function formatProgress(i: number, n: number, s: string): string {
 		+ s
 
 	return fmt
+};
+
+function align2D(items: string[][], itemJoin: string = " "): string[] {
+	for (let j = 0; j < items[0].length; j++) {
+		let maxLenInColumn = 0 
+		for (let i = 0; i < items.length; i++) {
+			const columnItem = items[i][j]
+			maxLenInColumn = Math.max(maxLenInColumn, columnItem.length)
+		}
+		for (let i = 0; i < items.length; i++) {
+			const len = items[i][j].length
+			const missingLen = maxLenInColumn - len
+			items[i][j] = " ".repeat(missingLen) + items[i][j]
+		}
+	}
+
+	const aligned = []
+	for (let i = 0; i < items.length; i++) {
+		aligned.push(items[i].join(itemJoin))
+	}
+
+	return aligned
 };
 
 /**

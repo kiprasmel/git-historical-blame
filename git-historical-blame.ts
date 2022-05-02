@@ -19,14 +19,19 @@ export type Opts = {
 	 * defaults to `false`
 	 */
 	includeCommitsAfterCommittish: boolean
+
+	// []
+	ignoredFilenames: string[]
 }
 const defaultSinceCommittish = "origin/master" as const
 const defaultIncludeCommitsAfterCommittish = false as const
+const defaultIgnoredFilenames: string[] = []
 
 export async function gitHistoricalBlame({
 	repoPath,
 	sinceCommittish = defaultSinceCommittish,
 	includeCommitsAfterCommittish = defaultIncludeCommitsAfterCommittish,
+	ignoredFilenames = defaultIgnoredFilenames,
 }: Opts) {
 	// prints to stdout
 	const execPrint = (c: string) => execSync(c, { cwd: repoPath, stdio: "inherit" });
@@ -39,6 +44,7 @@ export async function gitHistoricalBlame({
 	const filepaths: string[] = execRead(findFilesCmd).split("\n")
 		.map(f => f.trim())
 		.slice(0, -1) // remove empty
+		.filter(filepath => !ignoredFilenames.includes(path.basename(filepath)))
 
 	const outfile = "historical-blame.json" as const
 
@@ -328,11 +334,13 @@ if (!module.parent) {
 	const repoPath = process.argv[0]
 	const sinceCommittish = process.argv[1] || defaultSinceCommittish
 	const includeCommitsAfterCommittish = !!process.argv[2] ?? defaultIncludeCommitsAfterCommittish
+	const ignoredFilenames = (process.argv[3] ?? "").split(",")
 
 	gitHistoricalBlame({
 		repoPath,
 		sinceCommittish,
 		includeCommitsAfterCommittish,
+		ignoredFilenames,
 	})
 }
 

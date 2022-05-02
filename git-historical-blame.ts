@@ -33,6 +33,17 @@ export const filenames = {
 	grouped: "grouped.json",
 } as const
 
+export const read = (f: keyof typeof filenames | (string & {})) => JSON.parse(fs.readFileSync(f, { encoding: "utf-8" }))
+export const write = <T>(f: keyof typeof filenames | (string & {}), json: T) => fs.writeFileSync(
+		f,
+		JSON.stringify(
+			json,
+			null,
+			2
+		),
+		{ encoding: "utf-8" }
+	)
+
 export type Opts = {
 	repoPath: string
 	/**
@@ -172,14 +183,7 @@ export async function gitHistoricalBlame({
 		)
 	}
 
-	fs.writeFileSync(
-		filenames.blame,
-		JSON.stringify(
-			output,
-			null,
-			2,
-		)
-	);
+	write(filenames.blame, output)
 
 	const totalChanged = totalAdded + totalDeleted
 	console.log({
@@ -188,17 +192,11 @@ export async function gitHistoricalBlame({
 		totalChanged,
 	})
 
-	fs.writeFileSync(filenames.stats,
-		JSON.stringify({
-				totalAdded,
-				totalDeleted,
-				totalChanged,
-			},
-			null,
-			2,
-		),
-		{ encoding: "utf-8" },
-	)
+	write(filenames.stats, {
+		totalAdded,
+		totalDeleted,
+		totalChanged,
+	})
 }
 
 function noop(..._xs: any[]): void {

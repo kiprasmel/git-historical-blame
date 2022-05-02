@@ -1,14 +1,12 @@
 #!/usr/bin/env ts-node-dev
 
-import fs from "fs"
-
 import _ from "lodash"
 
-import { Output, filenames } from "./git-historical-blame"
+import { Output, filenames, read, write } from "./git-historical-blame"
 
 export async function group() {
-	const output: Output[] = JSON.parse(fs.readFileSync(filenames.blame, { encoding: "utf-8" }))
-	const { totalChanged } = JSON.parse(fs.readFileSync(filenames.stats, { encoding: "utf-8" }))
+	const output: Output[] = read(filenames.blame)
+	const { totalChanged } = read(filenames.stats)
 
 	/**
 	 * grouping!
@@ -28,16 +26,7 @@ export async function group() {
 			})
 		).sort((A, B)  => B.both - A.both)
 
-
-	fs.writeFileSync(
-		filenames.grouped,
-		JSON.stringify(
-			grouped,
-			null,
-			2
-		),
-		{ encoding: "utf-8" }
-	)
+	write(filenames.grouped, grouped)
 }
 
 if (!module.parent) {

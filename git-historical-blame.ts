@@ -41,7 +41,28 @@ export async function gitHistoricalBlame({
 		.slice(0, -1) // remove empty
 
 	const outfile = "historical-blame.json" as const
-	const output = []
+
+	/**
+	 * maybe "CumulativeEntry" or "CumulativeModifications"
+	 */
+	type Modifications = {
+		adds: Entry["insertions"]
+		dels: Entry["deletions"]
+		both: Entry["totalChanges"]
+	};
+
+	type Output = (Modifications & {
+		filepath: string
+	}) & (
+		({
+			author: string
+			fraction: string
+		}) | ({
+			info: "deleted"
+		})
+	)
+
+	const output: Output[] = []
 	let progress = 0
 	let totalAdded = 0
 	let totalDeleted = 0
@@ -54,7 +75,10 @@ export async function gitHistoricalBlame({
 			// got deleted
 			output.push({
 				filepath,
-				info: "deleted"
+				info: "deleted",
+				adds: 0,
+				dels: 0,
+				both: 0,
 			})
 
 			continue
@@ -74,14 +98,6 @@ export async function gitHistoricalBlame({
 
 		const entries: Entry[] = entriesByCommit.map(parseEntryFromStrings(filepath))
 
-		/**
-		 * maybe "CumulativeEntry" or "CumulativeModifications"
-		 */
-		type Modifications = {
-			adds: Entry["insertions"]
-			dels: Entry["deletions"]
-			both: Entry["totalChanges"]
-		};
 		const totalChangesByAuthor: Map<Entry["authorEmail"], Modifications> = new Map()
 		for (const e of entries) {
 			if (!totalChangesByAuthor.has(e.authorEmail)) {
@@ -140,7 +156,8 @@ export async function gitHistoricalBlame({
 					filepath,
 					author: e[0],
 					...e[1],
-					fraction: (e[1].both / sumOfTotalChanges).toFixed(2) 
+					fraction: (e[1].both / sumOfTotalChanges).toFixed(2),
+					
 				})
 			)
 		)
@@ -159,15 +176,33 @@ export async function gitHistoricalBlame({
 		outfile,
 	});
 
+	const totalChanged = totalAdded + totalDeleted
+
 	console.log({
 		totalAdded,
 		totalDeleted,
+		totalChanged,
 	})
 
 	/**
 	 * grouping!
 	 */
-	const grouped = _.groupBy(output, "author")
+	const grouped =
+		Object.entries(
+			_.groupBy(output, "author")
+		).map(([author, changes]) => ({
+			author,
+			filepaths: changes.map(c => c.filepath),
+			adds: changes.reduce((acc, c) => acc + c.adds!, 0),
+			dels: changes.reduce((acc, c) => acc + c.dels!, 0),
+		})).map(x => 
+			Object.assign(x, {
+				both: x.adds + x.dels,
+				totalOwnership: (((x.adds + x.dels) / totalChanged) * 100).toFixed(2),
+			})
+		).sort((A, B)  => B.both - A.both)
+
+
 	fs.writeFileSync(
 		"grouped.json",
 		JSON.stringify(

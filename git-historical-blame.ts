@@ -6,6 +6,7 @@ import fs from "fs"
 import path from "path"
 
 import c from "chalk"
+import _ from "lodash"
 
 export type Opts = {
 	repoPath: string
@@ -152,6 +153,20 @@ export async function gitHistoricalBlame({
 	console.log({
 		outfile,
 	});
+
+	/**
+	 * grouping!
+	 */
+	const grouped = _.groupBy(output, "author")
+	fs.writeFileSync(
+		"grouped.json",
+		JSON.stringify(
+			grouped,
+			null,
+			2
+		),
+		{ encoding: "utf-8" }
+	)
 }
 
 function noop(..._xs: any[]): void {

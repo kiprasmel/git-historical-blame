@@ -111,8 +111,17 @@ export async function gitHistoricalBlame({
 
 		const sumOfTotalChanges = totalChangesByAuthorParsed.reduce((acc, [_, { both }]) => acc + both, 0)
 
+		/*
 		outfileStream.write(JSON.stringify({
 			filepath,
+			totalChangesByAuthor: [
+				...totalChangesByAuthor.entries()
+			].map(e => ({
+					author: e[0],
+					...e[1],
+					fraction: (e[1].both / sumOfTotalChanges).toFixed(2) 
+				})
+			),
 			totalChangesByAuthorParsed: align2D(
 				totalChangesByAuthorParsed.map((c) =>
 					([
@@ -126,6 +135,18 @@ export async function gitHistoricalBlame({
 				"  ",
 			)
 		}))
+		*/
+		outfileStream.write(
+			[
+				...totalChangesByAuthor.entries()
+			].map(e => JSON.stringify({
+					filepath,
+					author: e[0],
+					...e[1],
+					fraction: (e[1].both / sumOfTotalChanges).toFixed(2) 
+				})
+			).join(",")
+		)
 	}
 
 	outfileStream.end("]\n")
@@ -227,6 +248,7 @@ function formatProgress(i: number, n: number, s: string): string {
 	return fmt
 };
 
+noop(align2D)
 function align2D(items: string[][], itemJoin: string = " "): string[] {
 	for (let j = 0; j < items[0].length; j++) {
 		let maxLenInColumn = 0 

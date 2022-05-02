@@ -40,29 +40,19 @@ export async function gitHistoricalBlame({
 		.slice(0, -1) // remove empty
 
 	const outfile = "historical-blame.json" as const
-	const outfileStream = fs.createWriteStream(outfile)
+	const output = []
 	let progress = 0
-
-	// TODO: get rid of .json in the first place
-	outfileStream.write("[")
-	let firstWrite = true
 
 	for (const filepath of filepaths) {
 		console.log(formatProgress(++progress, filepaths.length, filepath))
 
-		if (!firstWrite) {
-			outfileStream.write(",")
-		}
-		firstWrite = false
-
 		const absFilepath: string = path.join(repoPath, filepath)
 		if (!fs.existsSync(absFilepath)) {
 			// got deleted
-
-			outfileStream.write(JSON.stringify({
+			output.push({
 				filepath,
 				info: "deleted"
-			}))
+			})
 
 			continue
 		}
@@ -136,25 +126,24 @@ export async function gitHistoricalBlame({
 			)
 		}))
 		*/
-		outfileStream.write(
+		;
+		(
 			[
 				...totalChangesByAuthor.entries()
-			].map(e => JSON.stringify({
+			].forEach(e => output.push({
 					filepath,
 					author: e[0],
 					...e[1],
 					fraction: (e[1].both / sumOfTotalChanges).toFixed(2) 
 				})
-			).join(",")
+			)
 		)
 	}
-
-	outfileStream.end("]\n")
 
 	fs.writeFileSync(
 		outfile,
 		JSON.stringify(
-			fs.readFileSync(outfile, { encoding: "utf-8" }),
+			output,
 			null,
 			2,
 		)

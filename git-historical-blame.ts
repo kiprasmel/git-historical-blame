@@ -6,7 +6,32 @@ import fs from "fs"
 import path from "path"
 
 import c from "chalk"
-import _ from "lodash"
+
+/**
+ * maybe "CumulativeEntry" or "CumulativeModifications"
+ */
+export type Modifications = {
+	adds: Entry["insertions"]
+	dels: Entry["deletions"]
+	both: Entry["totalChanges"]
+};
+
+export type Output = (Modifications & {
+	filepath: string
+}) & (
+	({
+		author: string
+		fraction: string
+	}) | ({
+		info: "deleted"
+	})
+)
+
+export const filenames = {
+	blame: "historical-blame.json",
+	stats: "stats.json",
+	grouped: "grouped.json",
+} as const
 
 export type Opts = {
 	repoPath: string
@@ -45,28 +70,6 @@ export async function gitHistoricalBlame({
 		.map(f => f.trim())
 		.slice(0, -1) // remove empty
 		.filter(filepath => !ignoredFilenames.includes(path.basename(filepath)))
-
-	const outfile = "historical-blame.json" as const
-
-	/**
-	 * maybe "CumulativeEntry" or "CumulativeModifications"
-	 */
-	type Modifications = {
-		adds: Entry["insertions"]
-		dels: Entry["deletions"]
-		both: Entry["totalChanges"]
-	};
-
-	type Output = (Modifications & {
-		filepath: string
-	}) & (
-		({
-			author: string
-			fraction: string
-		}) | ({
-			info: "deleted"
-		})
-	)
 
 	const output: Output[] = []
 	let progress = 0
@@ -170,7 +173,7 @@ export async function gitHistoricalBlame({
 	}
 
 	fs.writeFileSync(
-		outfile,
+		filenames.blame,
 		JSON.stringify(
 			output,
 			null,
@@ -178,45 +181,23 @@ export async function gitHistoricalBlame({
 		)
 	);
 
-	console.log({
-		outfile,
-	});
-
 	const totalChanged = totalAdded + totalDeleted
-
 	console.log({
 		totalAdded,
 		totalDeleted,
 		totalChanged,
 	})
 
-	/**
-	 * grouping!
-	 */
-	const grouped =
-		Object.entries(
-			_.groupBy(output, "author")
-		).map(([author, changes]) => ({
-			author,
-			filepaths: changes.map(c => c.filepath),
-			adds: changes.reduce((acc, c) => acc + c.adds!, 0),
-			dels: changes.reduce((acc, c) => acc + c.dels!, 0),
-		})).map(x => 
-			Object.assign(x, {
-				both: x.adds + x.dels,
-				totalOwnership: (((x.adds + x.dels) / totalChanged) * 100).toFixed(2),
-			})
-		).sort((A, B)  => B.both - A.both)
-
-
-	fs.writeFileSync(
-		"grouped.json",
-		JSON.stringify(
-			grouped,
+	fs.writeFileSync(filenames.stats,
+		JSON.stringify({
+				totalAdded,
+				totalDeleted,
+				totalChanged,
+			},
 			null,
-			2
+			2,
 		),
-		{ encoding: "utf-8" }
+		{ encoding: "utf-8" },
 	)
 }
 

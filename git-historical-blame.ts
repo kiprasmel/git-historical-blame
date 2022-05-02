@@ -19,7 +19,7 @@ export type Opts = {
 	 */
 	includeCommitsAfterCommittish: boolean
 }
-const defaultSinceCommittish = "master" as const
+const defaultSinceCommittish = "origin/master" as const
 const defaultIncludeCommitsAfterCommittish = false as const
 
 export async function gitHistoricalBlame({

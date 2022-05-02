@@ -43,6 +43,8 @@ export async function gitHistoricalBlame({
 	const outfile = "historical-blame.json" as const
 	const output = []
 	let progress = 0
+	let totalAdded = 0
+	let totalDeleted = 0
 
 	for (const filepath of filepaths) {
 		console.log(formatProgress(++progress, filepaths.length, filepath))
@@ -100,7 +102,10 @@ export async function gitHistoricalBlame({
 
 		const totalChangesByAuthorParsed = [...totalChangesByAuthor.entries()].sort((A, B)  => B[1].both - A[1].both)
 
-		const sumOfTotalChanges = totalChangesByAuthorParsed.reduce((acc, [_, { both }]) => acc + both, 0)
+		const [sumAdded, sumDeleted] = totalChangesByAuthorParsed.reduce(([a, d], [_, { adds, dels }]) => [a + adds, d + dels], [0, 0])
+		totalAdded += sumAdded
+		totalDeleted += sumDeleted
+		const sumOfTotalChanges = sumAdded + sumDeleted
 
 		/*
 		outfileStream.write(JSON.stringify({
@@ -153,6 +158,11 @@ export async function gitHistoricalBlame({
 	console.log({
 		outfile,
 	});
+
+	console.log({
+		totalAdded,
+		totalDeleted,
+	})
 
 	/**
 	 * grouping!

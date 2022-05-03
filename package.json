@@ -1,16 +1,18 @@
 {
   "name": "git-historical-blame",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "dist/git-historical-blame.js",
   "bin": {
-  	"git-historical-blame": "dist/git-historical-blame.js"
+    "git-historical-blame": "dist/git-historical-blame.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "author": "Kipras Melnikovas <kipras@kipras.org> (https://kipras.org/)",
   "license": "UNLICENSED",
   "scripts": {
     "build": "yarn tsc -b",
-	"prepack": "yarn build"
+    "prepack": "yarn build"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.182",

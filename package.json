@@ -5,10 +5,12 @@
   "bin": {
   	"git-historical-blame": "dist/git-historical-blame.js"
   },
+  "files": ["dist"],
   "author": "Kipras Melnikovas <kipras@kipras.org> (https://kipras.org/)",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "yarn tsc -b"
+    "build": "yarn tsc -b",
+	"prepack": "yarn build"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.182",

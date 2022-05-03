@@ -1,7 +1,10 @@
 {
   "name": "git-historical-blame",
   "version": "0.0.0",
-  "main": "index.js",
+  "main": "dist/git-historical-blame.js",
+  "bin": {
+  	"git-historical-blame": "dist/git-historical-blame.js"
+  },
   "author": "Kipras Melnikovas <kipras@kipras.org> (https://kipras.org/)",
   "license": "UNLICENSED",
   "scripts": {

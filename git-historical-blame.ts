@@ -33,6 +33,9 @@ export const filenames = {
 	blame: "historical-blame.json",
 	stats: "stats.json",
 	grouped: "grouped.json",
+	teamified: "teamified.json",
+	byTeam: "by-team.json",
+	teamStats: "team-stats.json",
 } as const
 
 export const read = (f: keyof typeof filenames | (string & {})) => JSON.parse(fs.readFileSync(f, { encoding: "utf-8" }))
@@ -45,6 +48,35 @@ export const write = <T>(f: keyof typeof filenames | (string & {}), json: T) => 
 		),
 		{ encoding: "utf-8" }
 	)
+export const writeCsvOld = (f: string, cols: string[], rows: string[][], sep: string = ",", linesep: string = "\n") => {
+	const content =
+		cols.join(sep)
+		+ linesep
+		+ rows.map(r => r.join(sep)).join(linesep)
+		+ linesep
+
+	fs.writeFileSync(
+		f, 
+		content,
+		{ encoding: "utf-8" }
+	)
+}
+export const writeCsv = (f: string, data: Record<string, string>[], sep: string = ",", linesep: string = "\n") => {
+	const cols = Object.keys(data[0])
+	const rows = data.map(Object.values)
+	
+	const content =
+		cols.join(sep)
+		+ linesep
+		+ rows.map(r => r.join(sep)).join(linesep)
+		+ linesep
+
+	fs.writeFileSync(
+		f, 
+		content,
+		{ encoding: "utf-8" }
+	)
+}
 
 export type Opts = {
 	repoPath: string

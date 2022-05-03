@@ -1,5 +1,8 @@
 #!/usr/bin/env ts-node-dev
 
+import fs from "fs"
+import path from "path"
+
 import _ from "lodash"
 
 import { filenames, read, write, writeCsv } from "./git-historical-blame"
@@ -64,6 +67,26 @@ export async function teamify({
 		})
 	)).flat()
 	writeCsv(filenames.byTeam + ".csv", groupedWithTeamByTeamCsv) 
+
+	const teamsDir = "teams"
+	if (fs.existsSync(teamsDir)) {
+		fs.rmdirSync(teamsDir, { recursive: true })
+	}
+	fs.mkdirSync(teamsDir, { recursive: true })
+	groupedWithTeamByTeam.forEach(({ team, teammates }) => {
+		const teamFile = path.join(teamsDir, team.toLowerCase())
+		write(teamFile + ".json", teammates)
+		writeCsv(teamFile + ".csv", groupedWithTeamByTeamCsv.filter(t => t.team === team).map(t => ({
+			author_name: t.author_name,
+			// author_email: t.author_email,
+			total_ownership: t.total_ownership,
+			files_modified: t.files_modified,
+			adds_dels: t.both,
+			// team: t.team,
+			// adds: t.adds,
+			// dels: t.dels,
+		})))
+	})
 
 	const teamStats = groupedWithTeamByTeam.map(({ team, totalOwnershipAggregate }) => ({
 		team,

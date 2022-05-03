@@ -71,6 +71,13 @@ export async function gitHistoricalBlame({
 	includeCommitsAfterCommittish = defaultIncludeCommitsAfterCommittish,
 	ignoredFilenames = defaultIgnoredFilenames,
 }: Opts) {
+	console.log({
+		repoPath,
+		sinceCommittish,
+		includeCommitsAfterCommittish,
+		ignoredFilenames,
+	})
+
 	// prints to stdout
 	const execPrint = (c: string) => execSync(c, { cwd: repoPath, stdio: "inherit" });
 	noop(execPrint)

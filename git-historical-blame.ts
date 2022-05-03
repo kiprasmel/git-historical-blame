@@ -14,13 +14,15 @@ export type Modifications = {
 	adds: Entry["insertions"]
 	dels: Entry["deletions"]
 	both: Entry["totalChanges"]
+	authorName: Entry["authorName"]
 };
 
 export type Output = (Modifications & {
 	filepath: string
 }) & (
 	({
-		author: string
+		authorEmail: string
+		authorName: string
 		fraction: string
 	}) | ({
 		info: "deleted"
@@ -99,6 +101,7 @@ export async function gitHistoricalBlame({
 				adds: 0,
 				dels: 0,
 				both: 0,
+				authorName: "",
 			})
 
 			continue
@@ -122,6 +125,7 @@ export async function gitHistoricalBlame({
 		for (const e of entries) {
 			if (!totalChangesByAuthor.has(e.authorEmail)) {
 				totalChangesByAuthor.set(e.authorEmail, {
+					authorName: e.authorName,
 					adds: 0,
 					dels: 0,
 					both: 0,
@@ -130,6 +134,7 @@ export async function gitHistoricalBlame({
 
 			const tmp: Modifications = totalChangesByAuthor.get(e.authorEmail)!
 			totalChangesByAuthor.set(e.authorEmail, {
+				authorName: e.authorName,
 				adds: tmp.adds + e.insertions,
 				dels: tmp.dels + e.deletions,
 				both: tmp.both + e.totalChanges,
@@ -174,7 +179,7 @@ export async function gitHistoricalBlame({
 				...totalChangesByAuthor.entries()
 			].forEach(e => output.push({
 					filepath,
-					author: e[0],
+					authorEmail: e[0],
 					...e[1],
 					fraction: (e[1].both / sumOfTotalChanges).toFixed(2),
 					

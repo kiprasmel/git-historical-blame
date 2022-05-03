@@ -4,6 +4,16 @@ import _ from "lodash"
 
 import { Output, filenames, read, write } from "./git-historical-blame"
 
+export type Group = {
+    authorName: string
+    authorEmail: string
+    totalOwnership: number
+    adds: number
+    dels: number
+    both: number
+    filepaths: string[]
+}
+
 export async function group() {
 	const output: Output[] = read(filenames.blame)
 	const { totalChanged } = read(filenames.stats)
@@ -11,20 +21,24 @@ export async function group() {
 	/**
 	 * grouping!
 	 */
-	const grouped =
+	const grouped: Group[] =
 		Object.entries(
-			_.groupBy(output, "author")
-		).map(([author, changes]) => ({
-			author,
-			filepaths: changes.map(c => c.filepath),
-			adds: changes.reduce((acc, c) => acc + c.adds!, 0),
-			dels: changes.reduce((acc, c) => acc + c.dels!, 0),
-		})).map(x => 
-			Object.assign(x, {
-				both: x.adds + x.dels,
-				totalOwnership: (((x.adds + x.dels) / totalChanged) * 100).toFixed(2),
-			})
-		).sort((A, B)  => B.both - A.both)
+			_.groupBy(output, "authorEmail")
+		).map(([authorEmail, changes]): Group => {
+			const adds = changes.reduce((acc, c) => acc + c.adds!, 0)
+			const dels = changes.reduce((acc, c) => acc + c.dels!, 0)
+			const both = adds + dels
+
+			return {
+				authorName: changes[0].authorName,
+				authorEmail,
+				totalOwnership: Number(((both / totalChanged) * 100).toFixed(2)),
+				adds, 
+				dels,
+				both,
+				filepaths: changes.map(c => c.filepath),
+			}
+		}).sort((A, B)  => B.both - A.both)
 
 	write(filenames.grouped, grouped)
 }

@@ -22,7 +22,7 @@ export async function teamify({
 	teamsFilepath
 }: TeamifyOpts) {
 	const grouped: Group[] = read(filenames.grouped)
-	const teams: Teammate[] = read(teamsFilepath)
+	const teams: Teammate[] = !teamsFilepath ? [] : read(teamsFilepath)
 
 	const groupedWithTeam = grouped.map(({ filepaths, ...g }) => 
 		Object.assign(g, {

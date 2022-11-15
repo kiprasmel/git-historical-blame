@@ -227,7 +227,16 @@ function formatProgress(i: number, n: number, s: string): string {
 	return fmt
 };
 
-function align2D(items: string[][], itemJoin: string = " "): string[] {
+enum AlignmentPos {
+	R,
+	L,
+};
+
+function align2D(
+	items: string[][],
+	itemJoin: string = " ",
+	colAlignmentPos: AlignmentPos[] = new Array(items[0].length).fill(AlignmentPos.R),
+): string[] {
 	for (let j = 0; j < items[0].length; j++) {
 		let maxLenInColumn = 0 
 		for (let i = 0; i < items.length; i++) {
@@ -237,7 +246,11 @@ function align2D(items: string[][], itemJoin: string = " "): string[] {
 		for (let i = 0; i < items.length; i++) {
 			const len = items[i][j].length
 			const missingLen = maxLenInColumn - len
-			items[i][j] = " ".repeat(missingLen) + items[i][j]
+			items[i][j] = 
+				!colAlignmentPos[j] || colAlignmentPos[j] === AlignmentPos.R
+				? " ".repeat(missingLen) + items[i][j]
+				: items[i][j] + " ".repeat(missingLen)
+
 		}
 	}
 

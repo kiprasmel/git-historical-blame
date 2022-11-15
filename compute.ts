@@ -2,23 +2,34 @@ import fs from "fs"
 import path from "path"
 import assert from "assert"
 
-import { Opts, Output, filenames, write, Entry, parseEntryFromStrings, Modifications, } from "./git-historical-blame"
+import { expose } from "threads/worker"
+
+import {
+	Opts, //
+	Output,
+	Entry,
+	parseEntryFromStrings,
+	Modifications,
+	execRead,
+    getDefaultOutput,
+} from "./git-historical-blame"
 
 export type ComputeIndividualFileDataArgs = {
 	repoPath: Opts["repoPath"]
 	filepath: string
 	includeCommitsAfterCommittish: Opts["includeCommitsAfterCommittish"]
 	sinceCommittish: Opts["sinceCommittish"]
-	execRead: (cmd: string) => string
 }
 
 export type ComputeIndividualFileDataRet = {
+	output: Output[]
 	sumAdded: number
 	sumDeleted: number
 	sumOfTotalChanges: number
 }
 
 export const getDefaultIndividualFileData = (): ComputeIndividualFileDataRet => ({
+	output: [getDefaultOutput()],
 	sumAdded: 0,
 	sumDeleted: 0,
 	sumOfTotalChanges: 0,
@@ -29,7 +40,6 @@ export function computeIndividualFileData({
 	filepath,
 	includeCommitsAfterCommittish,
 	sinceCommittish,
-	execRead,
 }: ComputeIndividualFileDataArgs): ComputeIndividualFileDataRet {
 	const output: Output[] = []
 
@@ -50,7 +60,7 @@ export function computeIndividualFileData({
 
 	const extra1 = includeCommitsAfterCommittish ? "" : sinceCommittish
 	const fileHistoricalCmd = `git log ${extra1} --stat=1000 --follow --pretty=format:"%H%n%aN%n%aE" ${filepath}`
-	const fileHistorical: string = execRead(fileHistoricalCmd)
+	const fileHistorical: string = execRead(repoPath, fileHistoricalCmd)
 
 	const entriesByCommit: string[][] = fileHistorical.split("\n\n").map(e => e.split("\n"))
 	entriesByCommit[entriesByCommit.length - 1].pop() // remove empty
@@ -128,16 +138,17 @@ export function computeIndividualFileData({
 		)
 	)
 
-	write(filenames.blame, output)
-
 	return {
+		output,
 		sumAdded,
 		sumDeleted,
 		sumOfTotalChanges,
 	}
 }
 
-export const compute = {
+const compute = {
 	computeIndividualFileData
 }
+
+expose(compute)
 

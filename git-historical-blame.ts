@@ -5,9 +5,8 @@ import assert from "assert"
 import fs from "fs"
 import path from "path"
 
+import { spawn, Pool, Worker } from "threads"
 import c from "chalk"
-
-import { compute } from "./compute"
 
 /**
  * maybe "CumulativeEntry" or "CumulativeModifications"
@@ -30,6 +29,21 @@ export type Output = (Modifications & {
 		info: "deleted"
 	})
 )
+
+export const getDefaultOutput = () => ({
+	adds: 0,
+	dels: 0,
+	both: 0,
+	authorName: "",
+
+	filepath: "",
+
+	authorEmail: "",
+	//authorName: "", // TODO: duplicate?
+	fraction: "",
+
+	info: "",
+})
 
 export const filenames = {
 	blame: "historical-blame.json",
@@ -112,40 +126,47 @@ export async function gitHistoricalBlame({
 		ignoredFilenames,
 	})
 
-	// prints to stdout
-	const execPrint = (c: string) => execSync(c, { cwd: repoPath, stdio: "inherit" });
-	noop(execPrint)
-
-	// returns stdout
-	const execRead = (c: string): string => execSync(c, { cwd: repoPath, stdio: "pipe" }).toString();
-
 	const findFilesCmd = `git diff --stat=1000 ${sinceCommittish} | head -n -1 | cut -d"|" -f1`
-	const filepaths: string[] = execRead(findFilesCmd).split("\n")
+	const filepaths: string[] = execRead(repoPath, findFilesCmd).split("\n")
 		.map(f => f.trim())
 		.slice(0, -1) // remove empty
 		.filter(filepath => !ignoredFilenames.includes(path.basename(filepath)))
 
-	let totalAdded = 0
-	let totalDeleted = 0
+	const pool = Pool(() => spawn(new Worker("./compute")))
+	const tasks = []
 
 	for (let i = 0; i < filepaths.length; ++i) {
 		const filepath = filepaths[i]
 
-		console.log(formatProgress(i, filepaths.length, filepath))
-
-		const { sumAdded, sumDeleted } = compute.computeIndividualFileData({
+		const task = pool.queue(worker => worker.computeIndividualFileData({
 			repoPath, //
 			filepath,
 			includeCommitsAfterCommittish,
 			sinceCommittish,
-			execRead,
+		}))
+
+		task.then(() => {
+			console.log(formatProgress(i+1, filepaths.length, filepath))
 		})
 
-		totalAdded += sumAdded
-		totalDeleted += sumDeleted
+		tasks.push(task)
 	}
 
-	const totalChanged = totalAdded + totalDeleted
+	const tasksResults = await Promise.all(tasks)
+
+	let totalAdded = 0
+	let totalDeleted = 0
+	let totalChanged = 0
+	const outputs = []
+	for (let i = 0; i < tasksResults.length; ++i) {
+		const res = tasksResults[i]
+
+		totalAdded += res.sumAdded
+		totalDeleted += res.sumDeleted
+		totalChanged += res.sumOfTotalChanges
+		outputs.push(res.output)
+	}
+
 	console.log({
 		totalAdded,
 		totalDeleted,
@@ -157,11 +178,23 @@ export async function gitHistoricalBlame({
 		totalDeleted,
 		totalChanged,
 	})
+
+	const mergedOutputs = outputs.flat()
+	write(filenames.blame, mergedOutputs)
+
+	await pool.terminate()
 }
 
 function noop(..._xs: any[]): void {
 	//
 }
+
+// prints to stdout
+export const execPrint = (cwd: string, cmd: string) => execSync(cmd, { cwd, stdio: "inherit" });
+noop(execPrint)
+
+// returns stdout
+export const execRead = (cwd: string, cmd: string): string => execSync(cmd, { cwd, stdio: "pipe" }).toString();
 
 export type Entry<T extends string = string> = {
 	sha: string
@@ -280,6 +313,10 @@ if (!module.parent) {
 		sinceCommittish,
 		includeCommitsAfterCommittish,
 		ignoredFilenames,
+	}).then(() => {
+		process.exit(0)
+	}).catch(() => {
+		process.exit(1)
 	})
 }
 
